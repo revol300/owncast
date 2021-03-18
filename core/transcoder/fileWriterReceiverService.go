@@ -35,17 +35,16 @@ func (s *FileWriterReceiverService) SetupFileWriterReceiverService(callbacks Fil
 	httpServer.HandleFunc("/", s.uploadHandler)
 
 	localListenerAddress := "127.0.0.1:0"
+	listener, err := net.Listen("tcp", localListenerAddress)
+	if err != nil {
+		log.Fatalln("Unable to start internal video writing service", err)
+	}
+
+	listenerPort := strings.Split(listener.Addr().String(), ":")[1]
+	config.InternalHLSListenerPort = listenerPort
+	log.Traceln("Transcoder response service listening on: " + listenerPort)
 
 	go func() {
-		listener, err := net.Listen("tcp", localListenerAddress)
-		if err != nil {
-			log.Fatalln("Unable to start internal video writing service", err)
-		}
-
-		listenerPort := strings.Split(listener.Addr().String(), ":")[1]
-		config.InternalHLSListenerPort = listenerPort
-		log.Traceln("Transcoder response service listening on: " + listenerPort)
-
 		if err := http.Serve(listener, httpServer); err != nil {
 			log.Fatalln("Unable to start internal video writing service", err)
 		}
