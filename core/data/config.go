@@ -36,6 +36,7 @@ const videoLatencyLevel = "video_latency_level"
 const videoStreamOutputVariantsKey = "video_stream_output_variants"
 const chatDisabledKey = "chat_disabled"
 const externalActionsKey = "external_actions"
+const videoCodecKey = "video_codec"
 
 // GetExtraPageBodyContent will return the user-supplied body content.
 func GetExtraPageBodyContent() string {
@@ -461,6 +462,20 @@ func GetExternalActions() []models.ExternalAction {
 func SetExternalActions(actions []models.ExternalAction) error {
 	var configEntry = ConfigEntry{Key: externalActionsKey, Value: actions}
 	return _datastore.Save(configEntry)
+}
+
+// SetVideoCodec will set the codec used for video encoding.
+func SetVideoCodec(codec string) error {
+	return _datastore.SetString(videoCodecKey, codec)
+}
+
+func GetVideoCodec() string {
+	codec, err := _datastore.GetString(videoCodecKey)
+	if codec == "" || err != nil {
+		return "libx264" // Default value
+	}
+
+	return codec
 }
 
 // VerifySettings will perform a sanity check for specific settings values.
