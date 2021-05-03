@@ -4,7 +4,7 @@ import "path/filepath"
 
 const (
 	// StaticVersionNumber is the version of Owncast that is used when it's not overwritten via build-time settings.
-	StaticVersionNumber = "0.0.7" // Shown when you build from master
+	StaticVersionNumber = "0.0.7" // Shown when you build from develop
 	// WebRoot is the web server root directory.
 	WebRoot = "webroot"
 	// PrivateHLSStoragePath is the HLS write directory.
@@ -17,6 +17,8 @@ const (
 	FfmpegSuggestedVersion = "v4.1.5" // Requires the v
 	// BackupDirectory is the directory we write backup files to.
 	BackupDirectory = "backup"
+	// DataDirectory is the directory we save data to.
+	DataDirectory = "data"
 )
 
 var (

@@ -101,7 +101,6 @@ export default class App extends Component {
     this.disableChatInput = this.disableChatInput.bind(this);
     this.setCurrentStreamDuration = this.setCurrentStreamDuration.bind(this);
 
-    this.handleKeyDown = this.handleKeyDown.bind(this);
     this.handleKeyPressed = this.handleKeyPressed.bind(this);
     this.displayExternalAction = this.displayExternalAction.bind(this);
     this.closeExternalActionModal = this.closeExternalActionModal.bind(this);
@@ -127,7 +126,6 @@ export default class App extends Component {
     if (this.hasTouchScreen) {
       window.addEventListener('orientationchange', this.handleWindowResize);
     }
-    window.addEventListener('keydown', this.handleKeyDown);
     window.addEventListener('keypress', this.handleKeyPressed);
     this.player = new OwncastPlayer();
     this.player.setupPlayerCallbacks({
@@ -149,7 +147,6 @@ export default class App extends Component {
     window.removeEventListener('resize', this.handleWindowResize);
     window.removeEventListener('blur', this.handleWindowBlur);
     window.removeEventListener('focus', this.handleWindowFocus);
-    window.removeEventListener('keydown', this.handleKeyDown);
     window.removeEventListener('keypress', this.handleKeyPressed);
     if (this.hasTouchScreen) {
       window.removeEventListener('orientationchange', this.handleWindowResize);
@@ -396,19 +393,59 @@ export default class App extends Component {
     }
   }
 
-  handleKeyDown(e) {
-    if (e.code === 'Escape' && this.state.externalAction !== null) {
-      this.closeExternalActionModal();
+  handleMuteKeyPressed() {
+    const muted = this.player.vjsPlayer.muted();
+    const volume = this.player.vjsPlayer.volume();
+
+    if (volume === 0) {
+      this.player.vjsPlayer.volume(0.5);
+      this.player.vjsPlayer.muted(false);
+    } else {
+      this.player.vjsPlayer.muted(!muted);
     }
   }
 
+  handleFullScreenKeyPressed() {
+    if (this.player.vjsPlayer.isFullscreen()) {
+      this.player.vjsPlayer.exitFullscreen();
+    } else {
+      this.player.vjsPlayer.requestFullscreen();
+    }
+  }
+
+  handleVolumeSet(factor) {
+    this.player.vjsPlayer.volume(this.player.vjsPlayer.volume() + factor);
+  }
+
   handleKeyPressed(e) {
-    if (
-      e.code === 'Space' &&
-      e.target === document.body &&
+    if (e.code === 'Escape' && this.state.externalAction !== null) {
+      this.closeExternalActionModal();
+    } else if (
+      e.target !== document.getElementById('message-input') &&
+      e.target !== document.getElementById('username-change-input') &&
       this.state.streamOnline
     ) {
-      this.handleSpaceBarPressed(e);
+      switch (e.code) {
+        case 'MediaPlayPause':
+        case 'KeyP':
+        case 'Space':
+          this.handleSpaceBarPressed(e);
+          break;
+        case 'KeyM':
+          this.handleMuteKeyPressed(e);
+          break;
+        case 'KeyF':
+          this.handleFullScreenKeyPressed(e);
+          break;
+        case 'KeyC':
+          this.handleChatPanelToggle();
+          break;
+        case 'Digit9':
+          this.handleVolumeSet(-0.1);
+          break;
+        case 'Digit0':
+          this.handleVolumeSet(0.1);
+      }
     }
   }
 
@@ -424,12 +461,15 @@ export default class App extends Component {
     url.searchParams.append('username', username);
     url.searchParams.append('instance', window.location);
 
+    const fullUrl = url.toString();
+
     if (openExternally) {
-      var win = window.open(url.toString(), '_blank');
+      var win = window.open(fullUrl, '_blank');
       win.focus();
       return;
     }
 
+    action.url = fullUrl;
     this.setState({
       externalAction: action,
     });
@@ -471,6 +511,7 @@ export default class App extends Component {
       extraPageContent,
       chatDisabled,
       externalActions,
+      customStyles,
     } = configData;
 
     const bgUserLogo = { backgroundImage: `url(${logo})` };
@@ -536,6 +577,10 @@ export default class App extends Component {
         id="app-container"
         class="flex w-full flex-col justify-start relative ${extraAppClasses}"
       >
+        <style>
+          ${customStyles}
+        </style>
+
         <div id="top-content" class="z-50">
           <header
             class="flex border-b border-gray-900 border-solid shadow-md fixed z-10 w-full top-0	left-0 flex flex-row justify-between flex-no-wrap"
@@ -616,10 +661,10 @@ export default class App extends Component {
             <div
               class="user-content-header border-b border-gray-500 border-solid"
             >
-              ${externalActionButtons}
               <h2 class="font-semibold text-5xl">
                 <span class="streamer-name text-indigo-600">${name}</span>
               </h2>
+              <div>${externalActionButtons}</div>
               <h3 class="font-semibold text-3xl">
                 ${streamOnline && streamTitle}
               </h3>
@@ -644,10 +689,9 @@ export default class App extends Component {
         <footer class="flex flex-row justify-start p-8 opacity-50 text-xs">
           <span class="mx-1 inline-block">
             <a href="${URL_OWNCAST}" rel="noopener noreferrer" target="_blank"
-              >About Owncast</a
+              >${appVersion}</a
             >
           </span>
-          <span class="mx-1 inline-block">Version ${appVersion}</span>
         </footer>
 
         <${Chat}

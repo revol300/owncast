@@ -2,12 +2,14 @@ package data
 
 import (
 	"errors"
+	"path/filepath"
 	"sort"
 	"strings"
 	"time"
 
 	"github.com/owncast/owncast/config"
 	"github.com/owncast/owncast/models"
+	"github.com/owncast/owncast/utils"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -36,12 +38,14 @@ const videoLatencyLevel = "video_latency_level"
 const videoStreamOutputVariantsKey = "video_stream_output_variants"
 const chatDisabledKey = "chat_disabled"
 const externalActionsKey = "external_actions"
+const customStylesKey = "custom_styles"
+const videoCodecKey = "video_codec"
 
 // GetExtraPageBodyContent will return the user-supplied body content.
 func GetExtraPageBodyContent() string {
 	content, err := _datastore.GetString(extraContentKey)
 	if err != nil {
-		log.Errorln(extraContentKey, err)
+		log.Traceln(extraContentKey, err)
 		return config.GetDefaults().PageBodyContent
 	}
 
@@ -72,8 +76,8 @@ func SetStreamTitle(title string) error {
 func GetStreamKey() string {
 	key, err := _datastore.GetString(streamKeyKey)
 	if err != nil {
-		log.Errorln(streamKeyKey, err)
-		return ""
+		log.Traceln(streamKeyKey, err)
+		return config.GetDefaults().StreamKey
 	}
 
 	return key
@@ -88,7 +92,7 @@ func SetStreamKey(key string) error {
 func GetLogoPath() string {
 	logo, err := _datastore.GetString(logoPathKey)
 	if err != nil {
-		log.Errorln(logoPathKey, err)
+		log.Traceln(logoPathKey, err)
 		return config.GetDefaults().Logo
 	}
 
@@ -108,7 +112,7 @@ func SetLogoPath(logo string) error {
 func GetServerSummary() string {
 	summary, err := _datastore.GetString(serverSummaryKey)
 	if err != nil {
-		log.Errorln(serverSummaryKey, err)
+		log.Traceln(serverSummaryKey, err)
 		return ""
 	}
 
@@ -124,7 +128,7 @@ func SetServerSummary(summary string) error {
 func GetServerWelcomeMessage() string {
 	welcomeMessage, err := _datastore.GetString(serverWelcomeMessageKey)
 	if err != nil {
-		log.Debugln(serverWelcomeMessageKey, err)
+		log.Traceln(serverWelcomeMessageKey, err)
 		return config.GetDefaults().ServerWelcomeMessage
 	}
 
@@ -140,8 +144,8 @@ func SetServerWelcomeMessage(welcomeMessage string) error {
 func GetServerName() string {
 	name, err := _datastore.GetString(serverNameKey)
 	if err != nil {
-		log.Errorln(serverNameKey, err)
-		return ""
+		log.Traceln(serverNameKey, err)
+		return config.GetDefaults().Name
 	}
 
 	return name
@@ -171,7 +175,7 @@ func SetServerURL(url string) error {
 func GetHTTPPortNumber() int {
 	port, err := _datastore.GetNumber(httpPortNumberKey)
 	if err != nil {
-		log.Errorln(httpPortNumberKey, err)
+		log.Traceln(httpPortNumberKey, err)
 		return config.GetDefaults().WebServerPort
 	}
 
@@ -190,7 +194,7 @@ func SetHTTPPortNumber(port float64) error {
 func GetRTMPPortNumber() int {
 	port, err := _datastore.GetNumber(rtmpPortNumberKey)
 	if err != nil {
-		log.Errorln(rtmpPortNumberKey, err)
+		log.Traceln(rtmpPortNumberKey, err)
 		return config.GetDefaults().RTMPServerPort
 	}
 
@@ -210,7 +214,7 @@ func SetRTMPPortNumber(port float64) error {
 func GetServerMetadataTags() []string {
 	tagsString, err := _datastore.GetString(serverMetadataTagsKey)
 	if err != nil {
-		log.Errorln(serverMetadataTagsKey, err)
+		log.Traceln(serverMetadataTagsKey, err)
 		return []string{}
 	}
 
@@ -255,12 +259,12 @@ func GetSocialHandles() []models.SocialHandle {
 
 	configEntry, err := _datastore.Get(socialHandlesKey)
 	if err != nil {
-		log.Errorln(socialHandlesKey, err)
+		log.Traceln(socialHandlesKey, err)
 		return socialHandles
 	}
 
 	if err := configEntry.getObject(&socialHandles); err != nil {
-		log.Errorln(err)
+		log.Traceln(err)
 		return socialHandles
 	}
 
@@ -375,7 +379,7 @@ func SetS3Config(config models.S3) error {
 func GetS3StorageEnabled() bool {
 	enabled, err := _datastore.GetBool(s3StorageEnabledKey)
 	if err != nil {
-		log.Errorln(err)
+		log.Traceln(err)
 		return false
 	}
 
@@ -463,10 +467,49 @@ func SetExternalActions(actions []models.ExternalAction) error {
 	return _datastore.Save(configEntry)
 }
 
+// SetCustomStyles will save a string with CSS to insert into the page.
+func SetCustomStyles(styles string) error {
+	return _datastore.SetString(customStylesKey, styles)
+}
+
+// GetCustomStyles will return a string with CSS to insert into the page.
+func GetCustomStyles() string {
+	style, err := _datastore.GetString(customStylesKey)
+	if err != nil {
+		return ""
+	}
+
+	return style
+}
+
+// SetVideoCodec will set the codec used for video encoding.
+func SetVideoCodec(codec string) error {
+	return _datastore.SetString(videoCodecKey, codec)
+}
+
+func GetVideoCodec() string {
+	codec, err := _datastore.GetString(videoCodecKey)
+	if codec == "" || err != nil {
+		return "libx264" // Default value
+	}
+
+	return codec
+}
+
 // VerifySettings will perform a sanity check for specific settings values.
 func VerifySettings() error {
 	if GetStreamKey() == "" {
 		return errors.New("no stream key set. Please set one in your config file")
+	}
+
+	logoPath := GetLogoPath()
+	if !utils.DoesFileExists(filepath.Join(config.DataDirectory, logoPath)) {
+		defaultLogo := filepath.Join(config.WebRoot, "img/logo.svg")
+		log.Traceln(logoPath, "not found in the data directory. copying a default logo.")
+		if err := utils.Copy(defaultLogo, filepath.Join(config.DataDirectory, "logo.svg")); err != nil {
+			log.Errorln("error copying default logo: ", err)
+		}
+		SetLogoPath("logo.svg")
 	}
 
 	return nil

@@ -4,7 +4,6 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"strconv"
 
 	log "github.com/sirupsen/logrus"
 
@@ -99,6 +98,7 @@ func transitionToOfflineVideoStreamContent() {
 	offlineFilePath := "static/" + offlineFilename
 	_transcoder := transcoder.NewTranscoder()
 	_transcoder.SetInput(offlineFilePath)
+	_transcoder.SetIdentifier("offline")
 	_transcoder.Start()
 
 	// Copy the logo to be the thumbnail
@@ -130,31 +130,6 @@ func resetDirectories() {
 
 	// Remove the previous thumbnail
 	os.Remove(filepath.Join(config.WebRoot, "thumbnail.jpg"))
-
-	// Create private hls data dirs
-	if len(data.GetStreamOutputVariants()) != 0 {
-		for index := range data.GetStreamOutputVariants() {
-			err = os.MkdirAll(path.Join(config.PrivateHLSStoragePath, strconv.Itoa(index)), 0777)
-			if err != nil {
-				log.Fatalln(err)
-			}
-
-			err = os.MkdirAll(path.Join(config.PublicHLSStoragePath, strconv.Itoa(index)), 0777)
-			if err != nil {
-				log.Fatalln(err)
-			}
-		}
-	} else {
-		err = os.MkdirAll(path.Join(config.PrivateHLSStoragePath, strconv.Itoa(0)), 0777)
-		if err != nil {
-			log.Fatalln(err)
-		}
-
-		err = os.MkdirAll(path.Join(config.PublicHLSStoragePath, strconv.Itoa(0)), 0777)
-		if err != nil {
-			log.Fatalln(err)
-		}
-	}
 
 	// Remove the previous thumbnail
 	logo := data.GetLogoPath()

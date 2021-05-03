@@ -89,7 +89,7 @@ func HandleConn(c *rtmp.Conn, nc net.Conn) {
 	log.Infoln("Inbound stream connected.")
 	_setStreamAsConnected()
 
-	pipePath := utils.GetTemporaryPipePath()
+	pipePath := utils.GetTemporaryPipePath(fmt.Sprint(data.GetRTMPPortNumber()))
 	if !utils.DoesFileExists(pipePath) {
 		err := syscall.Mkfifo(pipePath, 0666)
 		if err != nil {
@@ -115,7 +115,7 @@ func HandleConn(c *rtmp.Conn, nc net.Conn) {
 
 		// If we don't get a readable packet in 10 seconds give up and disconnect
 		if err := _rtmpConnection.SetReadDeadline(time.Now().Add(10 * time.Second)); err != nil {
-			log.Warnln(err)
+			log.Debugln(err)
 		}
 
 		pkt, err := c.ReadPacket()
