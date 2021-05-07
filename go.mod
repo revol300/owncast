@@ -5,7 +5,7 @@ go 1.14
 require (
 	github.com/StackExchange/wmi v0.0.0-20190523213315-cbe66965904d // indirect
 	github.com/amalfra/etag v0.0.0-20190921100247-cafc8de96bc5
-	github.com/aws/aws-sdk-go v1.38.29
+	github.com/aws/aws-sdk-go v1.38.34
 	github.com/go-ole/go-ole v1.2.4 // indirect
 	github.com/grafov/m3u8 v0.11.1
 	github.com/markbates/pkger v0.17.1
@@ -17,7 +17,7 @@ require (
 	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect
 	github.com/oschwald/geoip2-golang v1.5.0
 	github.com/schollz/sqlite3dump v1.2.4
-	github.com/shirou/gopsutil v3.21.3+incompatible
+	github.com/shirou/gopsutil v3.21.4+incompatible
 	github.com/sirupsen/logrus v1.8.1
 	github.com/teris-io/shortid v0.0.0-20171029131806-771a37caa5cf
 	github.com/tklauser/go-sysconf v0.3.5 // indirect
